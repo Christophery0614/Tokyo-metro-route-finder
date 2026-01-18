@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>東京地下鉄検索システム - Tokyo Subway Search</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), 
+                        url('https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2000&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .language-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .feature-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 15px;
+            padding: 15px 20px;
+            padding-md: 20px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: white;
+            margin: 10px;
+            margin-md: 15px;
+            min-height: 100px;
+            min-height-md: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .feature-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+        .feature-btn i {
+            font-size: 2rem;
+            font-size-md: 2.5rem;
+            margin-bottom: 8px;
+            margin-bottom-md: 10px;
+        }
+        .feature-btn .btn-text {
+            font-size: 1rem;
+            font-size-md: 1.2rem;
+        }
+        .current-time {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 实时时间 -->
+    <div class="current-time">
+        <i class="fas fa-clock me-2"></i>
+        <span id="time-display">Loading...</span>
+    </div>
+
+    <!-- 语言切换器 -->
+    <div class="language-switcher">
+        <div class="btn-group">
+            <button class="btn btn-outline-light btn-sm" onclick="setLanguage('ja')" id="lang-ja">🇯🇵 日本語</button>
+            <button class="btn btn-outline-light btn-sm" onclick="setLanguage('en')" id="lang-en">🇺🇸 English</button>
+            <button class="btn btn-outline-light btn-sm" onclick="setLanguage('zh')" id="lang-zh">🇨🇳 中文</button>
+        </div>
+    </div>
+
+    <div class="container py-3 py-md-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-8">
+                <!-- 主卡片 -->
+                <div class="main-container p-3 p-md-5 text-center">
+                    <!-- 标题 -->
+                    <div class="mb-4 mb-md-5">
+                        <h1 class="display-5 display-md-4 fw-bold mb-2 mb-md-3" id="main-title">東京地下鉄検索</h1>
+                        <p class="lead text-muted" id="main-subtitle">便捷查询东京地铁信息</p>
+                    </div>
+
+                    <!-- 功能按钮 -->
+                    <div class="row justify-content-center">
+                        <div class="col-12 col-md-6">
+                            <button class="btn feature-btn w-100" onclick="goToRouteSearch()">
+                                <i class="fas fa-route"></i>
+                                <span class="btn-text" id="route-btn">経路検索</span>
+                            </button>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <button class="btn feature-btn w-100" onclick="goToLineSearch()">
+                                <i class="fas fa-subway"></i>
+                                <span class="btn-text" id="line-btn">路線検索</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 说明文字 -->
+                    <div class="mt-4 mt-md-5">
+                        <p class="text-muted" id="description">
+                            東京地下鉄の経路検索や路線情報を簡単に確認できます
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 多语言文本配置
+        const translations = {
+            'ja': {
+                'main-title': '東京地下鉄検索',
+                'main-subtitle': '便捷查询东京地铁信息',
+                'route-btn': '経路検索',
+                'line-btn': '路線検索',
+                'description': '東京地下鉄の経路検索や路線情報を簡単に確認できます',
+                'time-format': 'YYYY年MM月DD日 HH時mm分ss秒'
+            },
+            'en': {
+                'main-title': 'Tokyo Subway Search',
+                'main-subtitle': 'Convenient Tokyo Metro Information Query',
+                'route-btn': 'Route Search',
+                'line-btn': 'Line Search',
+                'description': 'Easily search for Tokyo subway routes and line information',
+                'time-format': 'YYYY-MM-DD HH:mm:ss'
+            },
+            'zh': {
+                'main-title': '东京地铁查询',
+                'main-subtitle': '便捷查询东京地铁信息',
+                'route-btn': '路径查询',
+                'line-btn': '线路查询',
+                'description': '轻松查询东京地铁路线和线路信息',
+                'time-format': 'YYYY年MM月DD日 HH时mm分ss秒'
+            }
+        };
+
+        // 当前语言
+        let currentLang = '{{ current_lang }}';
+
+        // 格式化时间
+        function formatTime(date, lang) {
+            const texts = translations[lang];
+            const format = texts['time-format'];
+            
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            
+            return format
+                .replace('YYYY', year)
+                .replace('MM', month)
+                .replace('DD', day)
+                .replace('HH', hours)
+                .replace('mm', minutes)
+                .replace('ss', seconds);
+        }
+        
+        // 更新实时时间
+        function updateTime() {
+            const now = new Date();
+            const timeDisplay = document.getElementById('time-display');
+            
+            if (timeDisplay) {
+                timeDisplay.textContent = formatTime(now, currentLang);
+            }
+        }
+
+        // 设置语言
+        function setLanguage(lang) {
+            fetch(`/set_language/${lang}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('语言切换失败:', error);
+                });
+        }
+
+        // 更新界面文本
+        function updateTexts() {
+            const texts = translations[currentLang];
+            
+            document.getElementById('main-title').textContent = texts['main-title'];
+            document.getElementById('main-subtitle').textContent = texts['main-subtitle'];
+            document.getElementById('route-btn').textContent = texts['route-btn'];
+            document.getElementById('line-btn').textContent = texts['line-btn'];
+            document.getElementById('description').textContent = texts['description'];
+            
+            // 更新时间显示
+            updateTime();
+        }
+
+        // 跳转到路径查询页面
+        function goToRouteSearch() {
+            window.location.href = '/route';
+        }
+
+        // 跳转到线路查询页面
+        function goToLineSearch() {
+            window.location.href = '/lines';
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 更新界面文本
+            updateTexts();
+            
+            // 启动实时时钟
+            updateTime(); // 立即更新一次
+            setInterval(updateTime, 1000); // 每秒更新
+
+            console.log('主页面初始化完成');
+        });
+    </script>
+</body>
+</html>

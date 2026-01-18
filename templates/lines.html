@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>東京地下鉄路線検索 - Tokyo Subway Lines</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+        .language-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .line-map {
+            margin: 20px 0;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: white;
+            min-height: 400px;
+            padding: 20px;
+            position: relative;
+        }
+        .route-visualization {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .route-line {
+            height: 8px;
+            border-radius: 4px;
+            margin: 40px 0 20px 0;
+            position: relative;
+        }
+        .station-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #000;
+            position: absolute;
+            top: -4px;
+            transform: translateX(-50%);
+            cursor: pointer;
+            z-index: 10;
+        }
+        .station-label {
+            position: absolute;
+            top: -35px;
+            transform: translateX(-50%);
+            font-size: 11px;
+            white-space: nowrap;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 3px 6px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+            z-index: 20;
+            max-width: 100px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            font-weight: 500;
+        }
+        .line-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .line-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .station-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .station-item {
+            padding: 8px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .station-item:hover {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <!-- 返回按钮 -->
+    <div class="back-btn">
+        <button class="btn btn-outline-light" onclick="goBack()">
+            <i class="fas fa-arrow-left me-2"></i>
+            <span id="back-text">戻る</span>
+        </button>
+    </div>
+
+    <!-- 语言切换器 -->
+    <div class="language-switcher">
+        <div class="btn-group">
+            <button class="btn btn-outline-light btn-sm" onclick="setLanguage('ja')" id="lang-ja">🇯🇵 日本語</button>
+            <button class="btn btn-outline-light btn-sm" onclick="setLanguage('en')" id="lang-en">🇺🇸 English</button>
+            <button class="btn btn-outline-light btn-sm" onclick="setLanguage('zh')" id="lang-zh">🇨🇳 中文</button>
+        </div>
+    </div>
+
+    <div class="container py-3 py-md-5">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <!-- 主卡片 -->
+                <div class="main-container p-3 p-md-4">
+                    <!-- 标题 -->
+                    <div class="text-center mb-3 mb-md-4">
+                        <h1 class="display-5 fw-bold" id="main-title">東京地下鉄路線図</h1>
+                        <p class="lead text-muted" id="main-subtitle">各路線の情報を確認できます</p>
+                    </div>
+
+                    <!-- 东京地铁全景图 -->
+                    <div class="row mb-3 mb-md-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
+                                    <h5 class="mb-2 mb-md-0 text-center text-md-start" id="panorama-title">
+                                        <i class="fas fa-map me-2"></i>
+                                        東京地下鉄全景図
+                                    </h5>
+                                    <button class="btn btn-light btn-sm" onclick="exportToPDF()" id="export-pdf-btn">
+                                        <i class="fas fa-file-pdf me-2"></i>
+                                        PDFで保存
+                                    </button>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div id="panorama-map" style="height: 400px; height-md: 600px; background: #f8f9fa; position: relative; overflow: hidden;">
+                                        <!-- 全景图将通过JavaScript动态生成 -->
+                                        <div class="text-center py-5 text-muted" id="panorama-loading">
+                                            <i class="fas fa-spinner fa-spin fa-2x fa-md-3x mb-3"></i>
+                                            <p>全景図を読み込み中...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 线路选择 -->
+                    <div class="row">
+                        <div class="col-12 col-md-4 mb-3 mb-md-0">
+                            <h5 class="mb-3" id="line-select-title">路線を選択</h5>
+                            <div id="lines-container">
+                                <!-- 线路列表将通过JavaScript动态生成 -->
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 col-md-8">
+                            <h5 class="mb-3" id="line-detail-title">路線詳細</h5>
+                            <div class="line-map" id="line-map">
+                                <div class="text-center text-muted py-4 py-md-5" id="line-placeholder">
+                                    <i class="fas fa-subway fa-2x fa-md-3x mb-3"></i>
+                                    <p id="placeholder-text">路線を選択してください</p>
+                                </div>
+                            </div>
+                            
+                            <!-- 车站列表 -->
+                            <div id="station-container" style="display: none;">
+                                <h6 class="mb-3" id="station-title">駅一覧</h6>
+                                <div class="station-list" id="station-list">
+                                    <!-- 车站列表将通过JavaScript动态生成 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 多语言文本配置
+        const translations = {
+            'ja': {
+                'back-text': '戻る',
+                'main-title': '東京地下鉄路線図',
+                'main-subtitle': '各路線の情報を確認できます',
+                'line-select-title': '路線を選択',
+                'line-detail-title': '路線詳細',
+                'placeholder-text': '路線を選択してください',
+                'station-title': '駅一覧',
+                'total-stations': '全駅数',
+                'stations': '駅',
+                'panorama-title': '東京地下鉄全景図',
+                'export-pdf': 'PDFで保存',
+                'panorama-loading': '全景図を読み込み中...',
+                'export-success': 'PDFのダウンロードが開始されました',
+                'export-error': 'PDFの生成に失敗しました'
+            },
+            'en': {
+                'back-text': 'Back',
+                'main-title': 'Tokyo Subway Lines',
+                'main-subtitle': 'View information for each line',
+                'line-select-title': 'Select Line',
+                'line-detail-title': 'Line Details',
+                'placeholder-text': 'Please select a line',
+                'station-title': 'Station List',
+                'total-stations': 'Total Stations',
+                'stations': 'stations',
+                'panorama-title': 'Tokyo Subway Panorama Map',
+                'export-pdf': 'Export PDF',
+                'panorama-loading': 'Loading panorama map...',
+                'export-success': 'PDF download started',
+                'export-error': 'Failed to generate PDF'
+            },
+            'zh': {
+                'back-text': '返回',
+                'main-title': '东京地铁线路图',
+                'main-subtitle': '查看各线路信息',
+                'line-select-title': '选择线路',
+                'line-detail-title': '线路详情',
+                'placeholder-text': '请选择线路',
+                'station-title': '车站列表',
+                'total-stations': '总车站数',
+                'stations': '个车站',
+                'panorama-title': '东京地铁全景图',
+                'export-pdf': '导出PDF',
+                'panorama-loading': '正在加载全景图...',
+                'export-success': 'PDF下载已开始',
+                'export-error': '生成PDF失败'
+            }
+        };
+
+        // 线路数据（颜色和名称）- 13条线路
+        const lineData = {
+            // 东京地铁（9条）
+            'G': { name: '銀座線', color: '#FF9500', stations: 19 },
+            'M': { name: '丸ノ内線', color: '#E60012', stations: 28 },
+            'H': { name: '日比谷線', color: '#B5B5AC', stations: 21 },
+            'T': { name: '東西線', color: '#009BBF', stations: 23 },
+            'C': { name: '千代田線', color: '#00BB85', stations: 20 },
+            'Y': { name: '有楽町線', color: '#C1A470', stations: 24 },
+            'Z': { name: '半蔵門線', color: '#8F76D6', stations: 14 },
+            'N': { name: '南北線', color: '#00AC9B', stations: 19 },
+            'F': { name: '副都心線', color: '#9C5E31', stations: 16 },
+            // 都营地铁（4条）
+            'A': { name: '浅草線', color: '#E85298', stations: 20 },
+            'I': { name: '三田線', color: '#0079C2', stations: 27 },
+            'S': { name: '新宿線', color: '#6CBB5A', stations: 21 },
+            'E': { name: '大江戸線', color: '#B6007A', stations: 38 }
+        };
+
+        // 当前语言
+        let currentLang = '{{ current_lang }}';
+
+        // 全景图配置
+        const panoramaConfig = {
+            width: 1200,
+            height: 600,
+            padding: 50,
+            stationRadius: 6,
+            lineWidth: 8,
+            fontSize: 12
+        };
+
+        // 返回主页
+        function goBack() {
+            window.location.href = '/';
+        }
+
+        // 设置语言
+        function setLanguage(lang) {
+            fetch(`/set_language/${lang}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('语言切换失败:', error);
+                });
+        }
+
+        // 更新界面文本
+        function updateTexts() {
+            const texts = translations[currentLang];
+            
+            document.getElementById('back-text').textContent = texts['back-text'];
+            document.getElementById('main-title').textContent = texts['main-title'];
+            document.getElementById('main-subtitle').textContent = texts['main-subtitle'];
+            document.getElementById('line-select-title').textContent = texts['line-select-title'];
+            document.getElementById('line-detail-title').textContent = texts['line-detail-title'];
+            document.getElementById('placeholder-text').textContent = texts['placeholder-text'];
+            document.getElementById('station-title').textContent = texts['station-title'];
+            
+            // 更新全景图相关文本
+            const panoramaTitle = document.getElementById('panorama-title');
+            const exportBtn = document.getElementById('export-pdf-btn');
+            if (panoramaTitle) {
+                panoramaTitle.innerHTML = `<i class=\"fas fa-map me-2\"></i>${texts['panorama-title'] || '東京地下鉄全景図'}`;
+            }
+            if (exportBtn) {
+                exportBtn.innerHTML = `<i class=\"fas fa-file-pdf me-2\"></i>${texts['export-pdf'] || 'PDFで保存'}`;
+            }
+        }
+
+        // 生成线路列表
+        function generateLineList() {
+            const container = document.getElementById('lines-container');
+            container.innerHTML = '';
+
+            for (const [lineCode, lineInfo] of Object.entries(lineData)) {
+                const lineItem = document.createElement('div');
+                lineItem.className = 'line-item';
+                lineItem.style.backgroundColor = lineInfo.color;
+                lineItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">${lineCode}線</span>
+                        <small>${lineInfo.stations}駅</small>
+                    </div>
+                    <small>${lineInfo.name}</small>
+                `;
+                
+                lineItem.addEventListener('click', () => {
+                    showLineDetails(lineCode, lineInfo);
+                });
+                
+                container.appendChild(lineItem);
+            }
+        }
+
+        // 显示线路详情
+        function showLineDetails(lineCode, lineInfo) {
+            const mapContainer = document.getElementById('line-map');
+            const stationContainer = document.getElementById('station-container');
+            const texts = translations[currentLang];
+
+            // 获取该线路的车站数据
+            fetch(`/line_stations/${lineCode}`)
+                .then(response => response.json())
+                .then(stations => {
+                    // 更新地图显示
+                    mapContainer.innerHTML = `
+                        <!-- 线路信息标题 -->
+                        <div class="text-center mb-4">
+                            <h4 class="mb-2" style="color: ${lineInfo.color}">
+                                <i class="fas fa-train me-2"></i>
+                                ${lineCode}線 - ${lineInfo.name}
+                            </h4>
+                            <div class="mb-3">
+                                <span class="badge bg-primary">
+                                    ${texts['total-stations']}: ${stations.length} ${texts['stations']}
+                                </span>
+                            </div>
+                            <div class="text-muted small">
+                                ${lineCode}線の運行ルート（${stations[0] ? stations[0].name : ''} → ${stations[stations.length-1] ? stations[stations.length-1].name : ''}）
+                            </div>
+                        </div>
+                        
+                        <!-- 路线形状可视化 -->
+                        <div class="route-visualization">
+                            <div class="route-line" style="background: ${lineInfo.color}" id="route-line">
+                                <!-- 车站节点将通过JavaScript动态生成 -->
+                            </div>
+                        </div>
+                    `;
+
+                    // 生成路线形状
+                    generateRouteShape(stations, lineInfo.color);
+
+                    // 显示车站列表
+                    const stationList = document.getElementById('station-list');
+                    stationList.innerHTML = '';
+
+                    stations.forEach((station, index) => {
+                        const stationItem = document.createElement('div');
+                        stationItem.className = 'station-item';
+                        stationItem.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>
+                                    <span class="badge me-2" style="background-color: ${lineInfo.color}; color: white;">${station.order || index + 1}</span>
+                                    ${station.name}
+                                </span>
+                                <small class="text-muted">${station.lines.join(', ')}線</small>
+                            </div>
+                        `;
+                        
+                        // 添加点击事件显示车站详情
+                        stationItem.addEventListener('click', () => {
+                            showStationInfo(station.id, station.name);
+                        });
+                        
+                        stationList.appendChild(stationItem);
+                    });
+
+                    stationContainer.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('获取车站数据失败:', error);
+                    mapContainer.innerHTML = '<div class="alert alert-danger">データの読み込みに失敗しました</div>';
+                });
+        }
+
+        // 生成路线形状
+        function generateRouteShape(stations, lineColor) {
+            const routeLine = document.getElementById('route-line');
+            const routeWidth = routeLine.offsetWidth;
+            
+            // 清空现有内容
+            routeLine.innerHTML = '';
+            
+            if (stations.length < 2) return;
+            
+            // 计算每个车站的位置
+            stations.forEach((station, index) => {
+                const position = (index / (stations.length - 1)) * routeWidth;
+                
+                // 创建车站节点
+                const stationDot = document.createElement('div');
+                stationDot.className = 'station-dot';
+                stationDot.style.left = position + 'px';
+                stationDot.style.borderColor = lineColor;
+                stationDot.title = station.name;
+                
+                // 创建车站标签
+                const stationLabel = document.createElement('div');
+                stationLabel.className = 'station-label';
+                stationLabel.style.left = position + 'px';
+                stationLabel.textContent = station.name;
+                
+                // 每隔几个车站显示一个标签，避免重叠
+                if (index % Math.ceil(stations.length / 8) === 0 || index === 0 || index === stations.length - 1) {
+                    routeLine.appendChild(stationLabel);
+                }
+                
+                routeLine.appendChild(stationDot);
+            });
+        }
+
+        // 显示车站详情
+        function showStationInfo(stationId, stationName) {
+            fetch(`/station_info/${stationId}`)
+                .then(response => response.json())
+                .then(stationInfo => {
+                    // 创建模态框显示车站详情
+                    const modalHtml = `
+                        <div class="modal fade" id="stationModal" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">${stationName}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p><strong>駅ID:</strong> ${stationInfo.id}</p>
+                                        <p><strong>乗り入れ路線:</strong> ${stationInfo.lines.join(', ')}</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 如果模态框不存在，则创建
+                    if (!document.getElementById('stationModal')) {
+                        document.body.insertAdjacentHTML('beforeend', modalHtml);
+                    }
+                    
+                    // 显示模态框
+                    const stationModal = new bootstrap.Modal(document.getElementById('stationModal'));
+                    stationModal.show();
+                })
+                .catch(error => {
+                    console.error('获取车站信息失败:', error);
+                    alert('駅情報の取得に失敗しました');
+                });
+        }
+
+        // 生成东京地铁全景图
+        function generatePanoramaMap() {
+            const container = document.getElementById('panorama-map');
+            const loading = document.getElementById('panorama-loading');
+            
+            // 清空容器
+            container.innerHTML = '';
+            
+            // 创建图片容器
+            const imgContainer = document.createElement('div');
+            imgContainer.style.position = 'relative';
+            imgContainer.style.width = '100%';
+            imgContainer.style.height = '100%';
+            imgContainer.style.overflow = 'auto';
+            imgContainer.style.background = '#f8f9fa';
+            
+            // 直接创建PDF链接，避免图片加载问题
+            loading.style.display = 'none';
+            
+            const pdfContainer = document.createElement('div');
+            pdfContainer.className = 'text-center p-4';
+            pdfContainer.style.height = '100%';
+            pdfContainer.style.display = 'flex';
+            pdfContainer.style.flexDirection = 'column';
+            pdfContainer.style.justifyContent = 'center';
+            pdfContainer.style.alignItems = 'center';
+            pdfContainer.innerHTML = `
+                <div class="alert alert-info d-inline-block" style="max-width: 500px;">
+                    <div class="d-flex flex-column align-items-center">
+                        <i class="fas fa-subway fa-3x text-primary mb-3"></i>
+                        <h5>東京地下鉄路線図</h5>
+                        <p class="text-muted">点击下方链接查看官方高清PDF版本</p>
+                        <div class="d-flex gap-2 mt-3">
+                            <a href="https://www.tokyometro.jp/station/pdf/202305/202305_number_tcn.pdf" 
+                               target="_blank" 
+                               class="btn btn-primary">
+                                <i class="fas fa-external-link-alt me-2"></i>
+                                日本語版
+                            </a>
+                            <a href="https://www.tokyometro.jp/station/pdf/202305/202305_number_en.pdf" 
+                               target="_blank" 
+                               class="btn btn-success">
+                                <i class="fas fa-external-link-alt me-2"></i>
+                                English
+                            </a>
+                            <a href="https://www.tokyometro.jp/station/pdf/202305/202305_number_tcn.pdf" 
+                               target="_blank" 
+                               class="btn btn-warning">
+                                <i class="fas fa-external-link-alt me-2"></i>
+                                中文版
+                            </a>
+                        </div>
+                        <p class="text-muted small mt-3">或者 <button class="btn btn-link p-0" onclick="generateSimpleMap()">生成简易线路图</button></p>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(pdfContainer);
+        }
+        
+        // 生成简易线路图
+        function generateSimpleMap() {
+            const container = document.getElementById('panorama-map');
+            container.innerHTML = `
+                <div class="p-4">
+                    <h5 class="text-center mb-4">東京地下鉄簡易路線図</h5>
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #FF9500; color: white;">
+                                <strong>銀座線 (G)</strong><br>
+                                <small>19駅</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #E60012; color: white;">
+                                <strong>丸ノ内線 (M)</strong><br>
+                                <small>28駅</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #B5B5AC; color: white;">
+                                <strong>日比谷線 (H)</strong><br>
+                                <small>21駅</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #009BBF; color: white;">
+                                <strong>東西線 (T)</strong><br>
+                                <small>23駅</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #00BB85; color: white;">
+                                <strong>千代田線 (C)</strong><br>
+                                <small>20駅</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #C1A470; color: white;">
+                                <strong>有楽町線 (Y)</strong><br>
+                                <small>24駅</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #8F76D6; color: white;">
+                                <strong>半蔵門線 (Z)</strong><br>
+                                <small>14駅</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #00AC9B; color: white;">
+                                <strong>南北線 (N)</strong><br>
+                                <small>19駅</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #9C5E31; color: white;">
+                                <strong>副都心線 (F)</strong><br>
+                                <small>16駅</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #E85298; color: white;">
+                                <strong>浅草線 (A)</strong><br>
+                                <small>20駅</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #0079C2; color: white;">
+                                <strong>三田線 (I)</strong><br>
+                                <small>27駅</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #6CBB5A; color: white;">
+                                <strong>新宿線 (S)</strong><br>
+                                <small>21駅</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 rounded" style="background: #B6007A; color: white;">
+                                <strong>大江戸線 (E)</strong><br>
+                                <small>38駅</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <button class="btn btn-secondary" onclick="generatePanoramaMap()">返回PDF链接</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 检测点击的线路（由于现在使用图片，此功能暂时禁用）
+        function detectClickedLine(x, y, width, height) {
+            return null; // 暂时返回null，因为现在使用的是图片而不是Canvas
+        }
+
+        // 导出PDF功能
+        function exportToPDF() {
+            // 显示加载提示
+            const exportBtn = document.getElementById('export-pdf-btn');
+            const originalText = exportBtn.innerHTML;
+            exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>生成中...';
+            exportBtn.disabled = true;
+            
+            // 使用后端PDF生成
+            fetch('/export_panorama')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('PDF生成失败');
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // 创建下载链接
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    
+                    // 设置文件名
+                    const now = new Date();
+                    a.download = `tokyo_subway_panorama_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.pdf`;
+                    
+                    // 触发下载
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    // 恢复按钮状态
+                    exportBtn.innerHTML = originalText;
+                    exportBtn.disabled = false;
+                    
+                    alert(translations[currentLang]['export-success']);
+                })
+                .catch(error => {
+                    console.error('PDF导出失败:', error);
+                    
+                    // 恢复按钮状态
+                    exportBtn.innerHTML = originalText;
+                    exportBtn.disabled = false;
+                    
+                    alert(translations[currentLang]['export-error']);
+                });
+        }
+
+        // 为PDF绘制线路（更高分辨率）
+        function drawAllLinesForPDF(ctx, width, height) {
+            // 调整配置为高分辨率
+            const config = {
+                lineWidth: panoramaConfig.lineWidth * 2,
+                fontSize: panoramaConfig.fontSize * 2,
+                stationRadius: panoramaConfig.stationRadius * 2
+            };
+            
+            // 绘制所有线路（与generatePanoramaMap类似，但调整了尺寸）
+            const centerX = width / 2;
+            const centerY = height / 2 + 100; // 为标题留出空间
+            
+            // 定义各线路的路径（调整位置）
+            const linePaths = {
+                'G': { points: [{x: 200, y: centerY}, {x: 600, y: centerY}, {x: 1000, y: centerY}] },
+                'M': { points: [{x: 400, y: centerY-200}, {x: 600, y: centerY-100}, {x: 800, y: centerY-200}] },
+                'H': { points: [{x: 400, y: centerY-300}, {x: 400, y: centerY}, {x: 400, y: centerY+300}] },
+                'T': { points: [{x: 200, y: centerY+100}, {x: 600, y: centerY+100}, {x: 1000, y: centerY+100}] },
+                'C': { points: [{x: 600, y: centerY-300}, {x: 600, y: centerY}, {x: 600, y: centerY+300}] },
+                'Y': { points: [{x: 300, y: centerY-100}, {x: 600, y: centerY-100}, {x: 900, y: centerY-100}] },
+                'Z': { points: [{x: 200, y: centerY-200}, {x: 600, y: centerY}, {x: 1000, y: centerY+200}] },
+                'N': { points: [{x: 800, y: centerY-300}, {x: 800, y: centerY}, {x: 800, y: centerY+300}] },
+                'F': { points: [{x: 1000, y: centerY-200}, {x: 600, y: centerY}, {x: 200, y: centerY+200}] },
+                'A': { points: [{x: 200, y: centerY+200}, {x: 600, y: centerY+200}, {x: 1000, y: centerY+200}] },
+                'I': { points: [{x: 1000, y: centerY-300}, {x: 1000, y: centerY}, {x: 1000, y: centerY+300}] },
+                'S': { points: [{x: 300, y: centerY+150}, {x: 600, y: centerY+150}, {x: 900, y: centerY+150}] },
+                'E': { points: [{x: 600, y: centerY}, {x: 700, y: centerY-100}, {x: 800, y: centerY}, {x: 700, y: centerY+100}, {x: 600, y: centerY}] }
+            };
+            
+            // 绘制每条线路
+            Object.keys(lineData).forEach(lineCode => {
+                const lineInfo = lineData[lineCode];
+                const path = linePaths[lineCode];
+                
+                if (path && path.points.length > 1) {
+                    ctx.strokeStyle = lineInfo.color;
+                    ctx.lineWidth = config.lineWidth;
+                    ctx.lineCap = 'round';
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(path.points[0].x, path.points[0].y);
+                    
+                    for (let i = 1; i < path.points.length; i++) {
+                        ctx.lineTo(path.points[i].x, path.points[i].y);
+                    }
+                    
+                    ctx.stroke();
+                    
+                    // 绘制线路标签
+                    const midPoint = path.points[Math.floor(path.points.length / 2)];
+                    ctx.fillStyle = lineInfo.color;
+                    ctx.font = `bold ${config.fontSize}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${lineCode}線`, midPoint.x, midPoint.y - 30);
+                    
+                    ctx.font = `${config.fontSize - 4}px Arial`;
+                    ctx.fillText(lineInfo.name, midPoint.x, midPoint.y + 30);
+                }
+            });
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 更新界面文本
+            updateTexts();
+            
+            // 生成线路列表
+            generateLineList();
+            
+            // 生成全景图
+            setTimeout(() => {
+                generatePanoramaMap();
+            }, 100);
+
+            console.log('线路查询页面初始化完成');
+        });
+    </script>
+</body>
+</html>

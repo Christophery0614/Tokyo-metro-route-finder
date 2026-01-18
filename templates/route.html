@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>東京地下鉄経路検索 - Tokyo Subway Route Search</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+        .language-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .station-input {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        .station-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .search-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .result-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+        .path-step {
+            border-left: 3px solid #667eea;
+            padding-left: 15px;
+            margin-bottom: 10px;
+        }
+        .transfer-step {
+            border-left-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .station-autocomplete {
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #ddd;
+            max-height: 200px;
+            overflow-y: auto;
+            width: 100%;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .autocomplete-item:hover {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <!-- 返回按钮 -->
+    <div class="back-btn">
+        <button class="btn btn-outline-light" onclick="goBack()">
+            <i class="fas fa-arrow-left me-2"></i>
+            <span id="back-text">戻る</span>
+        </button>
+    </div>
+
+    <!-- 语言切换器 -->
+    <div class="language-switcher">
+        <div class="btn-group">
+            <button class="btn btn-outline-light btn-sm" onclick="setLanguage('ja')" id="lang-ja">🇯🇵 日本語</button>
+            <button class="btn btn-outline-light btn-sm" onclick="setLanguage('en')" id="lang-en">🇺🇸 English</button>
+            <button class="btn btn-outline-light btn-sm" onclick="setLanguage('zh')" id="lang-zh">🇨🇳 中文</button>
+        </div>
+    </div>
+
+    <div class="container py-3 py-md-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-8">
+                <!-- 主卡片 -->
+                <div class="main-container p-3 p-md-5">
+                    <!-- 标题 -->
+                    <div class="text-center mb-4 mb-md-5">
+                        <h1 class="display-5 display-md-4 fw-bold mb-2 mb-md-3" id="main-title">経路検索</h1>
+                        <p class="lead text-muted" id="main-subtitle">最短経路を検索しましょう</p>
+                    </div>
+
+                    <!-- 搜索表单 -->
+                    <form id="routeForm">
+                        <div class="row g-3">
+                            <!-- 起始站 -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold" id="start-label">出発駅</label>
+                                <div class="position-relative">
+                                    <input type="text" class="form-control station-input" id="startStation" 
+                                           placeholder="駅名を入力..." autocomplete="off">
+                                    <input type="hidden" id="startStationId">
+                                    <div class="station-autocomplete" id="startAutocomplete" style="display: none;"></div>
+                                </div>
+                            </div>
+
+                            <!-- 终点站 -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold" id="end-label">到着駅</label>
+                                <div class="position-relative">
+                                    <input type="text" class="form-control station-input" id="endStation" 
+                                           placeholder="駅名を入力..." autocomplete="off">
+                                    <input type="hidden" id="endStationId">
+                                    <div class="station-autocomplete" id="endAutocomplete" style="display: none;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 搜索按钮 -->
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn search-btn text-white">
+                                <i class="fas fa-route me-2"></i>
+                                <span id="search-btn-text">経路検索</span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- 加载指示器 -->
+                    <div id="loading" class="text-center mt-4" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2" id="loading-text">経路を計算中...</p>
+                    </div>
+
+                    <!-- 结果区域 -->
+                    <div id="result" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 多语言文本配置
+        const translations = {
+            'ja': {
+                'back-text': '戻る',
+                'main-title': '経路検索',
+                'main-subtitle': '最短経路を検索しましょう',
+                'start-label': '出発駅',
+                'end-label': '到着駅',
+                'start-placeholder': '駅名を入力...',
+                'end-placeholder': '駅名を入力...',
+                'search-btn': '経路検索',
+                'loading-text': '経路を計算中...',
+                'select-station': '駅を選択してください',
+                'same-station': '出発駅と到着駅が同じです',
+                'error': 'エラーが発生しました',
+                'network-error': 'ネットワークエラー'
+            },
+            'en': {
+                'back-text': 'Back',
+                'main-title': 'Route Search',
+                'main-subtitle': 'Find the shortest route',
+                'start-label': 'Departure Station',
+                'end-label': 'Arrival Station',
+                'start-placeholder': 'Enter station name...',
+                'end-placeholder': 'Enter station name...',
+                'search-btn': 'Search Route',
+                'loading-text': 'Calculating route...',
+                'select-station': 'Please select stations',
+                'same-station': 'Departure and arrival stations are the same',
+                'error': 'An error occurred',
+                'network-error': 'Network error'
+            },
+            'zh': {
+                'back-text': '返回',
+                'main-title': '路径查询',
+                'main-subtitle': '查找最短路径',
+                'start-label': '出发站',
+                'end-label': '到达站',
+                'start-placeholder': '输入车站名...',
+                'end-placeholder': '输入车站名...',
+                'search-btn': '查询路线',
+                'loading-text': '计算路线中...',
+                'select-station': '请选择车站',
+                'same-station': '出发站和到达站相同',
+                'error': '发生错误',
+                'network-error': '网络错误'
+            }
+        };
+
+        // 当前语言
+        let currentLang = '{{ current_lang }}';
+
+        // 返回主页
+        function goBack() {
+            window.location.href = '/';
+        }
+
+        // 设置语言
+        function setLanguage(lang) {
+            fetch(`/set_language/${lang}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('语言切换失败:', error);
+                });
+        }
+
+        // 更新界面文本
+        function updateTexts() {
+            const texts = translations[currentLang];
+            
+            document.getElementById('back-text').textContent = texts['back-text'];
+            document.getElementById('main-title').textContent = texts['main-title'];
+            document.getElementById('main-subtitle').textContent = texts['main-subtitle'];
+            document.getElementById('start-label').textContent = texts['start-label'];
+            document.getElementById('end-label').textContent = texts['end-label'];
+            document.getElementById('startStation').placeholder = texts['start-placeholder'];
+            document.getElementById('endStation').placeholder = texts['end-placeholder'];
+            document.getElementById('search-btn-text').textContent = texts['search-btn'];
+            document.getElementById('loading-text').textContent = texts['loading-text'];
+        }
+
+        // 车站自动完成
+        function setupAutocomplete(inputElement, hiddenElement, autocompleteElement) {
+            let timeoutId;
+            
+            inputElement.addEventListener('input', function() {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                    const query = this.value.trim();
+                    if (query.length < 1) {
+                        autocompleteElement.style.display = 'none';
+                        return;
+                    }
+                    
+                    fetch(`/search_stations?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(stations => {
+                            autocompleteElement.innerHTML = '';
+                            if (stations && stations.length > 0) {
+                                stations.forEach(station => {
+                                    const item = document.createElement('div');
+                                    item.className = 'autocomplete-item';
+                                    item.innerHTML = `
+                                        <div class="fw-bold">${station.name}</div>
+                                        <small class="text-muted">${station.lines ? station.lines.join(', ') : ''}</small>
+                                    `;
+                                    item.addEventListener('click', () => {
+                                        inputElement.value = station.name;
+                                        hiddenElement.value = station.id;
+                                        autocompleteElement.style.display = 'none';
+                                    });
+                                    autocompleteElement.appendChild(item);
+                                });
+                                autocompleteElement.style.display = 'block';
+                            } else {
+                                autocompleteElement.style.display = 'none';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('搜索车站时出错:', error);
+                            autocompleteElement.style.display = 'none';
+                        });
+                }, 300);
+            });
+
+            // 点击外部关闭自动完成
+            document.addEventListener('click', function(e) {
+                if (!autocompleteElement.contains(e.target) && e.target !== inputElement) {
+                    autocompleteElement.style.display = 'none';
+                }
+            });
+        }
+
+        // 计算路线
+        function calculateRoute(startId, endId) {
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            
+            fetch('/calculate_route', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    start_station: startId,
+                    end_station: endId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                
+                if (data.success) {
+                    displayRouteResult(data);
+                } else {
+                    alert(data.error || translations[currentLang]['error']);
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                alert(translations[currentLang]['network-error']);
+            });
+        }
+
+        // 显示路线结果
+        function displayRouteResult(data) {
+            const result = document.getElementById('result');
+            
+            let html = `
+                <div class="result-card p-4">
+                    <h3 class="text-center mb-4">
+                        <i class="fas fa-route text-primary me-2"></i>
+                        ${currentLang === 'en' ? 'Search Results' : currentLang === 'zh' ? '查询结果' : '検索結果'}
+                    </h3>
+                    
+                    <!-- 时间信息 -->
+                    <div class="alert alert-info mb-4">
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <div class="h5 text-primary">
+                                    <i class="fas fa-play-circle me-2"></i>
+                                    ${currentLang === 'en' ? 'Departure Time' : currentLang === 'zh' ? '出发时间' : '出発時刻'}
+                                </div>
+                                <div class="h4 fw-bold">${data.time_info.departure_time}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="h5 text-success">
+                                    <i class="fas fa-flag-checkered me-2"></i>
+                                    ${currentLang === 'en' ? 'Arrival Time' : currentLang === 'zh' ? '到达时间' : '到着時刻'}
+                                </div>
+                                <div class="h4 fw-bold">${data.time_info.arrival_time}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="h5 text-secondary">
+                                    <i class="fas fa-clock me-2"></i>
+                                    ${currentLang === 'en' ? 'Travel Time' : currentLang === 'zh' ? '行程时间' : '移動時間'}
+                                </div>
+                                <div class="h4 fw-bold">${data.total_time} ${currentLang === 'en' ? 'min' : currentLang === 'zh' ? '分钟' : '分'}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 车站信息 -->
+                    <div class="alert alert-success">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>${currentLang === 'en' ? 'Departure:' : currentLang === 'zh' ? '出发:' : '出発:'}</strong> ${data.start_station}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>${currentLang === 'en' ? 'Arrival:' : currentLang === 'zh' ? '到达:' : '到着:'}</strong> ${data.end_station}
+                            </div>
+                        </div>
+                        <div class="mt-2 text-center">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                ${currentLang === 'en' ? 'Current time' : currentLang === 'zh' ? '当前时间' : '現在時刻'}: ${data.time_info.current_time}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <h5 class="mb-3">${currentLang === 'en' ? 'Route Details' : currentLang === 'zh' ? '路线详情' : '経路詳細'}:</h5>
+                    <div class="path-steps">
+            `;
+            
+            data.path_details.forEach(step => {
+                const stepClass = step.transfer ? 'transfer-step' : 'path-step';
+                
+                html += `
+                    <div class="${stepClass}">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-primary me-2">${step.order}</span>
+                            <div>
+                                <strong>${step.station_name}</strong>
+                                ${step.lines && step.lines.length > 0 ? 
+                                    `<small class="text-muted ms-2">(${step.line_names ? step.line_names.join(', ') : step.lines.join(', ')})</small>` : 
+                                    ''
+                                }
+                            </div>
+                        </div>
+                        ${step.transfer ? 
+                            `<small class="text-warning">
+                                <i class="fas fa-exchange-alt me-1"></i>
+                                ${currentLang === 'en' ? 'Transfer:' : currentLang === 'zh' ? '换乘:' : '乗換:'} 
+                                ${step.transfer_from.join(', ')} → ${step.transfer_to.join(', ')}
+                            </small>` : 
+                            ''
+                        }
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+            
+            result.innerHTML = html;
+            result.style.display = 'block';
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 更新界面文本
+            updateTexts();
+            
+            // 设置自动完成
+            setupAutocomplete(
+                document.getElementById('startStation'),
+                document.getElementById('startStationId'),
+                document.getElementById('startAutocomplete')
+            );
+            
+            setupAutocomplete(
+                document.getElementById('endStation'),
+                document.getElementById('endStationId'),
+                document.getElementById('endAutocomplete')
+            );
+
+            // 表单提交
+            document.getElementById('routeForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const startInput = document.getElementById('startStation');
+                const endInput = document.getElementById('endStation');
+                const startId = document.getElementById('startStationId').value;
+                const endId = document.getElementById('endStationId').value;
+                
+                if (!startId || !endId) {
+                    alert(translations[currentLang]['select-station']);
+                    return;
+                }
+                
+                if (startId === endId) {
+                    alert(translations[currentLang]['same-station']);
+                    return;
+                }
+                
+                calculateRoute(startId, endId);
+            });
+
+            console.log('路径查询页面初始化完成');
+        });
+    </script>
+</body>
+</html>
