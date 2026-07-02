@@ -6,6 +6,18 @@ Designed as an academic project emphasizing clean algorithm implementation, modu
 A web-based navigation system designed to calculate and visualize the shortest path between stations in the Tokyo subway network. This application is powered by a Python back-end using Flask and implements Dijkstra's Algorithm for efficient pathfinding.
 
 ---
+## 🌐 Introduction / 概要 / 简介
+
+### 🇬🇧 English
+**Tokyo Subway Pathfinder** is an intelligent web-based transit navigation system engineered to solve shortest-path queries within the massive Tokyo underground network. Leveraging **Dijkstra’s Algorithm** on a modeled graph database, the system computes the most efficient routes based on real-world travel metrics. Built with a robust **Flask** back-end and a sleek user interface, it offers seamless route visualization, line browsing, and interactive station mappings.
+
+### 🇯🇵 日本語
+**Tokyo Subway Pathfinder** は、広大な東京の地下鉄ネットワークにおける最適な移動経路を計算・可視化するために開発された、インテリジェントなウェブベースのナビゲーションシステムです。バックエンドには **Flask** を採用し、グラフ理論に基づく **ダイクストラ法（Dijkstra's Algorithm）** を実装することで、駅間の実移動時間や距離に応じた最短ルートを瞬時に算出します。直感的なUIによるルート案内、路線情報の閲覧、およびインタラクティブな路線図確認機能を備えています。
+
+### 🇨🇳 简体中文
+**Tokyo Subway Pathfinder** 是一款专为庞大的东京地铁网络设计的智能 Web 交通导航系统。该项目作为毕业设计（Final Year Project），核心算法基于图论中的**迪杰斯特拉算法（Dijkstra's Algorithm）**，通过对真实世界地铁线路数据的建模，能够高效计算出任意两站之间的最短路径或最优时间。系统采用 **Flask** 框架搭建后端，配合精美的现代化前端界面，实现了路线规划、地铁线路浏览以及交互式地图辅助查看等功能。
+
+---
 
 ## 🚀 Features
 
