@@ -1,7 +1,7 @@
 A Python and Flask-based Tokyo Metro Route Finder that uses Dijkstra’s Algorithm to find the shortest travel-time paths between stations.
 Designed as an academic project emphasizing clean algorithm implementation, modular architecture, and practical route-planning logic.
 
-# Tokyo Subway Pathfinder — Final Year Project
+# TOKYO METRO ROUTE FINDER USING DIJKSTRA ALGORITHM — Final Year Project
 
 A web-based navigation system designed to calculate and visualize the shortest path between stations in the Tokyo subway network. This application is powered by a Python back-end using Flask and implements Dijkstra's Algorithm for efficient pathfinding.
 
