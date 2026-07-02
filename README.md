@@ -134,7 +134,6 @@ When a user selects a starting station and a destination, `dijkstra_algorithm.py
 
 * **Name:** Yu Yifan
 * **Project Type:** Final Year Project (FYP)
-
-```
+* Academic Year: 2026
 
 ```
