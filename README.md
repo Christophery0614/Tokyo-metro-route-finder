@@ -40,6 +40,32 @@ Try the live version here:
 
 ---
 
+## ⚠️ Important Notice: Access & Deployment Limitations
+
+### 🌏 China Mainland Access
+The live demo hosted at [tokyometroroutefinder.christophery0614.workers.dev](https://tokyometroroutefinder.christophery0614.workers.dev/) is currently **not accessible from within Mainland China** due to network restrictions. If you are located in China, please consider running the application locally using the instructions below.
+
+### 💻 Local Deployment Limitations
+While the project runs successfully in a local environment, please be aware of the following limitations:
+
+| Limitation | Description |
+|------------|-------------|
+| **Static Dataset** | All route data is hardcoded in `tokyo_subway_data.py`. The system does not connect to real-time APIs for train schedules, delays, or service changes. |
+| **No Real-Time Updates** | Travel times and station status are based on static reference data and do not reflect live operational conditions. |
+| **Limited Network Scope** | Currently supports **Tokyo Metro lines only**. JR East, private railways, and bus routes are not included. |
+| **Local-Only Execution** | The Flask development server (`app.py`) is designed for local testing and is not configured for production deployment or high-concurrency scenarios. |
+| **No User Authentication** | The system does not support user accounts, saved routes, or personalized preferences. |
+
+> 💡 **Recommendation:** This project is intended for **academic demonstration and learning purposes**. For production-ready applications, consider integrating real-time transit APIs and deploying on a scalable cloud platform.
+
+---
+
+## 📸 Screenshots
+
+<img width="1841" height="1079" alt="f1ca414576dc97f2ec1f22fb874c21f0" src="https://github.com/user-attachments/assets/13b60692-a625-48d3-8f01-bbc4252c1b30" />
+
+---
+
 ## 📂 Project Structure
 
 ```text
