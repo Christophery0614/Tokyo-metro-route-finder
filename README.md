@@ -1,5 +1,8 @@
 # TOKYO METRO ROUTE FINDER USING DIJKSTRA ALGORITHM — Final Year Project
 
+[![Project Status](https://img.shields.io/badge/status-active-brightgreen)]()
+[![Python](https://img.shields.io/badge/Python-3.11+-blue)]()
+
 A Python and Flask-based Tokyo Metro Route Finder that uses Dijkstra’s Algorithm to find the shortest travel-time paths between stations.
 Designed as an academic project emphasizing clean algorithm implementation, modular architecture, and practical route-planning logic.
 
@@ -27,6 +30,13 @@ A web-based navigation system designed to calculate and visualize the shortest p
 - **Interactive Web Interface:** User-friendly frontend designed with HTML/CSS templates for seamless routing queries.
 - **Static Map Integration:** Includes a Tokyo subway map visual aid for reference.
 - **Cross-Platform Launch Scripts:** Includes automation scripts (`.bat` and `.sh`) for easy deployment on Windows, macOS, or Linux.
+
+---
+
+## 🌍 Live Demo
+
+Try the live version here:  
+👉 [Tokyo Metro Route Finder](https://tokyometroroutefinder.christophery0614.workers.dev/)
 
 ---
 
